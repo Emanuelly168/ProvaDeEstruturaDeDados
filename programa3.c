@@ -15,7 +15,18 @@ typedef struct {
 
 long StringParaTimestamp(const char* DataHoraString) {
     struct tm t = {0};
-    if (!strptime(DataHoraString, "%Y-%m-%d %H:%M:%S", &t)) return -1;
+    int ano, mes, dia, hora, minuto, segundo;
+
+    if (sscanf(DataHoraString, "%d-%d-%d %d:%d:%d", &ano, &mes, &dia, &hora, &minuto, &segundo) != 6)
+        return -1;
+
+    t.tm_year = ano - 1900;
+    t.tm_mon = mes - 1;
+    t.tm_mday = dia;
+    t.tm_hour = hora;
+    t.tm_min = minuto;
+    t.tm_sec = segundo;
+
     return mktime(&t);
 }
 
@@ -42,6 +53,7 @@ int main(int argc, char* argv[]) {
     }
 
     srand(time(NULL));
+
     long inicio = StringParaTimestamp(argv[1]);
     long fim = StringParaTimestamp(argv[2]);
     if (inicio == -1 || fim == -1 || fim <= inicio) {
@@ -51,20 +63,26 @@ int main(int argc, char* argv[]) {
 
     FILE* fsens = fopen(argv[3], "r");
     if (!fsens) {
-        printf("Falha ao abrir o arquivo de sensores!\n");
+        perror("Erro ao abrir o arquivo de sensores");
         return 1;
     }
 
     DadosDoSensor sensores[MaximoNumeroDeSensores];
     int total = 0;
-    while (fscanf(fsens, "%s %s", sensores[total].id, sensores[total].tipo) == 2 && total < MaximoNumeroDeSensores) {
+
+    while (fscanf(fsens, "%s %s", sensores[total].id, sensores[total].tipo) == 2) {
+        if (total >= MaximoNumeroDeSensores) {
+            printf("Erro: Numero maximo de sensores atingido!\n");
+            fclose(fsens);
+            return 1;
+        }
         total++;
     }
     fclose(fsens);
 
     FILE* fsaida = fopen(argv[4], "w");
     if (!fsaida) {
-        printf("Não foi possível abrir o arquivo de saída\n");
+        perror("Erro ao abrir o arquivo de saída");
         return 1;
     }
 

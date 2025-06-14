@@ -12,7 +12,17 @@ typedef struct {
 
 long ConverterDataParaTimestamp(const char* str) {
     struct tm t = {0};
-    if (!strptime(str, "%Y-%m-%d %H:%M:%S", &t)) return -1;
+    int ano, mes, dia, hora, minuto, segundo;
+
+    if (sscanf(str, "%d-%d-%d %d:%d:%d", &ano, &mes, &dia, &hora, &minuto, &segundo) != 6)
+        return -1;
+    t.tm_year = ano - 1900;
+    t.tm_mon = mes - 1;
+    t.tm_mday = dia;
+    t.tm_hour = hora;
+    t.tm_min = minuto;
+    t.tm_sec = segundo;
+
     return mktime(&t);
 }
 
@@ -27,11 +37,13 @@ int BuscarPorTimestamp(DadosDoSensor* Sensor, int total, long TimestampAlvo) {
 
     while (inicio <= fim) {
         int meio = (inicio + fim) / 2;
-        long MenorDiferenca = ValorAbsoluto(Sensor[meio].timestamp - TimestampAlvo);
+        long diferenca = ValorAbsoluto(Sensor[meio].timestamp - TimestampAlvo);
+
         if (diferenca < MenorDiferenca) {
             MenorDiferenca = diferenca;
             MaisProximo = meio;
         }
+
         if (Sensor[meio].timestamp < TimestampAlvo)
             inicio = meio + 1;
         else
@@ -48,7 +60,7 @@ int main(int argc, char* argv[]) {
 
     long TimestampAlvo = ConverterDataParaTimestamp(argv[2]);
     if (TimestampAlvo == -1) {
-        printf("Formato de data inválido!\n");
+        printf("Formato de data invalido!\n");
         return 1;
     }
 
@@ -56,7 +68,7 @@ int main(int argc, char* argv[]) {
     snprintf(arquivo, sizeof(arquivo), "%s.txt", argv[1]);
     FILE* f = fopen(arquivo, "r");
     if (!f) {
-        printf("Não foi possível abrir o arquivo %s\n", arquivo);
+        printf("Nao foi possível abrir o arquivo %s\n", arquivo);
         return 1;
     }
 
@@ -68,11 +80,12 @@ int main(int argc, char* argv[]) {
     fclose(f);
 
     if (contador == 0) {
-        printf("O arquivo está vazio!\n");
+        printf("O arquivo esta vazio!\n");
         return 1;
     }
 
-    int indice = BuscarPorTimestamp(DadosDoSensor, contador, TimestampAlvo);
-    printf("Leitura mais próxima encontrada:\n%ld %s\n", Sensor[indice].timestamp, Sensor[indice].valor);
+    int indice = BuscarPorTimestamp(Sensor, contador, TimestampAlvo);
+    printf("Leitura mais proxima encontrada:\n%ld %s\n", Sensor[indice].timestamp, Sensor[indice].valor);
+    
     return 0;
 }

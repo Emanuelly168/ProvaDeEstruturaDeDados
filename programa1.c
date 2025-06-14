@@ -31,13 +31,13 @@ int BuscarSensor(DadosDoSensor sensores[], int count, const char* identificador)
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        printf("Insira o nome do arquivo\n", argv[0]);
+        printf("Uso: %s <nome do arquivo>\n", argv[0]); 
         return 1;
     }
 
     FILE* f = fopen(argv[1], "r");
     if (!f) {
-        perror("Houve um erro ao abrir o arquivo");
+        perror("Erro ao abrir o arquivo");
         return 1;
     }
 
@@ -52,6 +52,11 @@ int main(int argc, char* argv[]) {
 
         int idx = BuscarSensor(sensores, NumeroTotalDeSensores, identificador);
         if (idx == -1) {
+            if (NumeroTotalDeSensores >= MaximoNumeroDeSensores) {
+                printf("Erro: Número máximo de sensores atingido!\n");
+                fclose(f);
+                return 1;
+            }
             idx = NumeroTotalDeSensores++;
             strcpy(sensores[idx].identificador, identificador);
             sensores[idx].quantidade = 0;
@@ -62,18 +67,23 @@ int main(int argc, char* argv[]) {
             s->dados[s->quantidade].timestamp = timestamp;
             strcpy(s->dados[s->quantidade].valor, valor);
             s->quantidade++;
+        } else {
+            printf("Aviso: Número máximo de leituras atingido para o sensor %s!\n", identificador);
         }
     }
     fclose(f);
 
     for (int i = 0; i < NumeroTotalDeSensores; i++) {
         DadosDoSensor* s = &sensores[i];
-        qsort(s->dados, s->quantidade, sizeof(Leitura), CompararDados);
+        qsort(s->dados, s->quantidade, sizeof(Entrada), CompararDados);
 
         char ArquivoDeSaida[64];
         snprintf(ArquivoDeSaida, sizeof(ArquivoDeSaida), "%s.txt", s->identificador);
         FILE* out = fopen(ArquivoDeSaida, "w");
-        if (!out) continue;
+        if (!out) {
+            printf("Erro ao criar arquivo: %s\n", ArquivoDeSaida);
+            continue;
+        }
 
         for (int j = 0; j < s->quantidade; j++) {
             fprintf(out, "%ld %s\n", s->dados[j].timestamp, s->dados[j].valor);
